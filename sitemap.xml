@@ -3,34 +3,34 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
   <url>
-    <loc>https://www.madleena.com/</loc>
+    <loc>https://madleena.vercel.app/</loc>
     <lastmod>2025-06-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="ar" href="https://www.madleena.com/ar/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.madleena.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://madleena.vercel.app/ar/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://madleena.vercel.app/en/"/>
   </url>
 
   <url>
-    <loc>https://www.madleena.com/#story</loc>
+    <loc>https://madleena.vercel.app/#story</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://www.madleena.com/#products</loc>
+    <loc>https://madleena.vercel.app/#products</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://www.madleena.com/#stores</loc>
+    <loc>https://madleena.vercel.app/#stores</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.madleena.com/#contact</loc>
+    <loc>https://madleena.vercel.app/#contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
