@@ -1,0 +1,9 @@
+{
+  "framework": "static",
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "devCommand": "npx http-server -p 3000",
+  "env": {},
+  "regions": ["iad1"]
+}
+

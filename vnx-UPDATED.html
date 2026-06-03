@@ -1,0 +1,1795 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNX Production - Safe Storage Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #475569;
+            --text-light: #64748b;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #f1f5f9 100%);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-online {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Sidebar Navigation */
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-section {
+            margin-bottom: 30px;
+        }
+
+        .nav-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 3px solid transparent;
+            background: rgba(255,255,255,0);
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            border-left-color: var(--accent);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: var(--text);
+        }
+
+        .tab-button.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* Cards & Content */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            display: table !important;
+        }
+
+        thead {
+            background: var(--bg);
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--primary);
+            border-bottom: 2px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--bg);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #0c4a6e;
+        }
+
+        /* Price Breakdown Styling */
+        .price-breakdown {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            min-width: 200px;
+        }
+
+        .price-item {
+            color: #475569;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .price-delivery {
+            color: #64748b;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .price-total {
+            color: #0f172a;
+            border-top: 2px solid #cbd5e1;
+            padding-top: 8px;
+            margin-top: 8px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Messages */
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .message-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .message-info {
+            background: #dbeafe;
+            color: #0c4a6e;
+            border: 1px solid #bfdbfe;
+        }
+
+        .message-loading {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f4f6;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive */
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 150;
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 24px;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mobile-menu-btn:hover {
+            background: var(--primary-light);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+
+            .app-container {
+                position: relative;
+            }
+
+            .sidebar {
+                width: 280px;
+                height: 100vh;
+                position: fixed;
+                left: -280px;
+                top: 0;
+                transition: left 0.3s ease-in-out;
+                z-index: 200;
+                border-right: 1px solid var(--border);
+                box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 75px 15px 15px 15px;
+                transition: filter 0.3s;
+            }
+
+            .main-content.menu-open {
+                filter: brightness(0.7);
+            }
+
+            .header {
+                margin-top: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+        }
+
+        /* Overlay for mobile menu */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 150;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .menu-overlay {
+                display: none !important;
+            }
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        /* Product Selection */
+        .product-select {
+            display: grid;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        .product-item {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .product-item:hover {
+            background: var(--bg);
+            border-color: var(--accent);
+        }
+
+        .product-item.selected {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent);
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .product-code {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .product-price {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .section-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title-row .section-title {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        .section-title-row .btn {
+            margin-left: auto;
+        }
+
+        /* Notification Styles */
+        .notification-item {
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: white;
+            transition: all 0.3s;
+            border-left: 4px solid var(--accent);
+        }
+
+        .notification-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left-color: var(--accent-dark);
+        }
+
+        .notification-item.unread {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: var(--text-light);
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .notification-body {
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .notification-footer {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .notification-type {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Overlay -->
+    <div class="menu-overlay" onclick="closeMobileMenu()"></div>
+
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="Toggle Menu">☰</button>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">🚀 VNX Production </div>
+            
+            <div class="nav-section">
+                <div class="nav-title">Main Features</div>
+                <div class="nav-item active" onclick="switchTab('create', this)">📦 Create Package</div>
+                <div class="nav-item" onclick="switchTab('packages', this)">📋 View Packages</div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-title">Account</div>
+                <div class="nav-item" onclick="switchTab('auth', this)">🔐 Authentication</div>
+                <div class="nav-item" onclick="switchTab('notifications', this)" style="position: relative;">🔔 Notifications
+                    <span id="sidebarNotificationBadge" class="notification-badge" style="display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">0</span>
+                </div>
+            </div>
+
+            <div id="sessionInfo" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: rgba(255,255,255,0.6);">
+                <div style="margin-bottom: 8px;"><strong>Session Status</strong></div>
+                <div id="tokenStatus">Initializing...</div>
+                <div id="lastUpdate" style="margin-top: 8px;">Last refresh: --:--</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>🚀 VNX Production V10</h1>
+                <div id="statusBadge" class="status-badge status-offline">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Initializing...</span>
+                </div>
+            </div>
+
+            <!-- Authentication Tab -->
+            <div id="auth" class="tab-content">
+                <div class="card">
+                    <h2>🔐 Authentication</h2>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="authEmail" value="" placeholder="Enter email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="authPassword" value="" placeholder="Enter password">
+                    </div>
+                    <div id="authMessage"></div>
+                    <button class="btn btn-primary btn-full" onclick="authenticate()">
+                        <span id="authSpinner" style="display: none;" class="spinner"></span>
+                        <span id="authText">Sign In</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div id="notifications" class="tab-content">
+                <div class="card">
+                    <h2>🔔 Notifications</h2>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-secondary btn-sm" onclick="loadNotifications()">
+                            🔄 Refresh Notifications
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="markAllAsRead()" id="markAllBtn" style="display: none;">
+                            ✓ Mark All as Read
+                        </button>
+                    </div>
+
+                    <div id="notificationsMessage"></div>
+                    
+                    <div id="notificationsList" style="max-height: 600px; overflow-y: auto;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔔</div>
+                            <p>Loading notifications...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Package Tab -->
+            <div id="create" class="tab-content active">
+                <div class="card">
+                    <h2>📦 Create Safe Storage Package</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>* Receiver Name</label>
+                            <input type="text" id="recName" placeholder="اسم المستلم" value="">
+                        </div>
+                        <div class="form-group">
+                            <label>* Phone Number</label>
+                            <input type="tel" id="recPhone" placeholder="091*******" value="">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="display: flex; flex-direction: column;">
+                            <label style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>* City</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="loadCitiesForSelection()" title="Refresh cities list" style="margin-bottom: 0;">🔄 Refresh</button>
+                            </label>
+                            <select id="recCity" onchange="updateSubcities()">
+                                <option value="">-- Select City --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column;">
+                            <label style="margin-bottom: 8px;">📍 Sub-City</label>
+                            <select id="recSubCity">
+                                <option value="">-- Select Sub-City --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>* Address</label>
+                            <input type="text" id="recAddr" placeholder="المنطقة \ الشارع \ اقرب نقطة دالة" value="">
+                        </div>
+                        <div class="form-group">
+                            <label id="subcityPriceLabel" style="display: none;">Delivery Price</label>
+                            <input type="text" id="subcityPrice" readonly placeholder="Will auto-fill from sub-city" style="display: none; background: #f0f0f0;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="recDesc" placeholder="منتج" rows="3"></textarea>
+                    </div>
+
+                    <div class="section-title-row">
+                        <div class="section-title">
+                            📦 Select Products
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="loadProductsForSelection()" title="Refresh products from server">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="productsList" class="product-select">
+                        <div class="message message-loading">Loading products...</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Price (د.ل) *</label>
+                            <input type="number" id="pkgPrice" placeholder="199" value="">
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select id="pkgPayment">
+                                <option value="cash">Cash</option>
+                                <option value="online">Online</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="createMessage"></div>
+                    <button class="btn btn-primary btn-full" onclick="createPackage()">
+                        <span id="createSpinner" style="display: none;" class="spinner"></span>
+                        <span id="createText">Create Package</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- View Packages Tab -->
+            <div id="packages" class="tab-content">
+                <div class="card">
+                    <h2>📋 All Packages</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Status Filter</label>
+                            <select id="packagesStatus" onchange="loadPackages()">
+                                <option value="all">All</option>
+                                <option value="store-new">Store New</option>
+                                <option value="on-road">On Road</option>
+                                <option value="delivered">Delivered</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Items Per Page</label>
+                            <select id="packagesPerPage" onchange="loadPackages()">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="loadPackages()" style="margin-bottom: 15px;">
+                        🔄 Refresh Packages
+                    </button>
+
+                    <div id="packagesMessage"></div>
+                    <div class="table-responsive">
+                        <table id="packagesTable">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Receiver</th>
+                                    <th>City</th>
+                                    <th>Status</th>
+                                    <th>💰 Price Breakdown</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="packagesList">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 40px;">
+                                        <div class="spinner" style="margin: 0 auto;"></div> Loading packages...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== GLOBAL STATE ====================
+        const state = {
+            baseUrl: 'http://localhost:3000',
+            token: localStorage.getItem('vnx_token') || null,  // Persist token
+            cities: [],
+            products: [],
+            selectedProducts: [],
+            isInitialized: false
+        };
+
+        // ==================== CITIES & SUBCITIES ====================
+        let allCitiesData = [];
+
+        async function loadCitiesForSelection() {
+            try {
+                const response = await fetch('https://app.vanex.ly/api/v1/city/all', {
+                    headers: {
+                        "accept": "application/json",
+                        "authorization": "Bearer 389845|TNTN7WnWhtrYPer811bzH417b4z26NOdH5kimTjD",
+                        "content-type": "application/json",
+                    },
+                    method: "GET",
+                    credentials: "include"
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                if (data.data && Array.isArray(data.data)) {
+                    allCitiesData = data.data;
+                    populateCitySelect();
+                    console.log('Cities loaded:', allCitiesData.length);
+                } else {
+                    throw new Error("Invalid data format");
+                }
+            } catch (error) {
+                console.error("Error fetching cities:", error);
+                showMessage('createMessage', `Error loading cities: ${error.message}`, 'error');
+            }
+        }
+
+        function populateCitySelect() {
+            const select = document.getElementById('recCity');
+            const currentValue = select.value; // Keep current selection
+            
+            select.innerHTML = '<option value="">-- Select City --</option>';
+            
+            allCitiesData.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city.id;
+                option.textContent = `${city.name} (${city.code}) - ${city.price} د.ل`;
+                option.dataset.locations = JSON.stringify(city.locations || []);
+                select.appendChild(option);
+            });
+
+            // Restore previous selection if it exists
+            if (currentValue && allCitiesData.find(c => c.id == currentValue)) {
+                select.value = currentValue;
+                updateSubcities();
+            }
+        }
+
+        function updateSubcities() {
+            const citySelect = document.getElementById('recCity');
+            const subcitySelect = document.getElementById('recSubCity');
+            const subcityPriceInput = document.getElementById('subcityPrice');
+            const subcityPriceLabel = document.getElementById('subcityPriceLabel');
+            
+            // Clear subcity select
+            subcitySelect.innerHTML = '<option value="">-- Select Sub-City --</option>';
+            subcityPriceInput.style.display = 'none';
+            subcityPriceLabel.style.display = 'none';
+            subcityPriceInput.value = '';
+
+            if (!citySelect.value) return;
+
+            const selectedCity = allCitiesData.find(c => c.id == citySelect.value);
+            
+            if (selectedCity && selectedCity.locations && selectedCity.locations.length > 0) {
+                selectedCity.locations.forEach(subcity => {
+                    const option = document.createElement('option');
+                    option.value = subcity.id;
+                    option.textContent = `${subcity.name} (${subcity.code}) - ${subcity.price} د.ل`;
+                    option.dataset.price = subcity.price;
+                    subcitySelect.appendChild(option);
+                });
+                
+                // Show price input and label
+                subcityPriceLabel.style.display = 'block';
+                subcityPriceInput.style.display = 'block';
+            } else {
+                const option = document.createElement('option');
+                option.textContent = 'No sub-cities available';
+                option.disabled = true;
+                subcitySelect.appendChild(option);
+            }
+        }
+
+        // Update delivery price when subcity changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const subcitySelect = document.getElementById('recSubCity');
+            if (subcitySelect) {
+                subcitySelect.addEventListener('change', function() {
+                    const selected = this.options[this.selectedIndex];
+                    const subcityPrice = document.getElementById('subcityPrice');
+                    if (selected.dataset.price) {
+                        subcityPrice.value = selected.dataset.price + ' د.ل';
+                    }
+                });
+            }
+        });
+
+        // ==================== ORIGINAL CODE ====================
+        async function initialize() {
+            try {
+                setStatus('Authenticating...', 'offline');
+                
+                // Check if we already have a valid token
+                if (state.token) {
+                    console.log('Token found in storage, using existing token');
+                    setStatus('Connected', 'online');
+                    updateSessionInfo();
+                    loadCitiesForSelection();  // Load cities from API
+                    loadProductsForSelection();
+                    loadNotifications();  // Load notifications
+                    return;
+                }
+                
+                // Try to get credentials from server and auto-authenticate
+                try {
+                    const response = await fetch(`${state.baseUrl}/api/get-credentials`);
+                    const data = await response.json();
+                    
+                    if (data.email && data.password) {
+                        console.log('Found credentials, authenticating...');
+                        
+                        // Authenticate with email/password from server
+                        const authRes = await fetch(`https://app.vanex.ly/api/v1/authenticate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: data.email, password: data.password })
+                        });
+                        const authData = await authRes.json();
+                        
+                        if (authData.data?.access_token || authData.access_token) {
+                            const token = authData.data?.access_token || authData.access_token;
+                            state.token = token;
+                            
+                            // Save token to localStorage for persistence
+                            localStorage.setItem('vnx_token', token);
+                            
+                            console.log('Successfully authenticated, token saved');
+                            setStatus('Connected', 'online');
+                            updateSessionInfo();
+                            loadCitiesForSelection();  // Load cities from API
+                            loadProductsForSelection();
+                            loadNotifications();  // Load notifications
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not auto-authenticate:', e.message);
+                }
+                
+                // If we reach here, no auto-auth succeeded
+                setStatus('Not authenticated', 'offline');
+                const productsList = document.getElementById('productsList');
+                if (productsList) {
+                    productsList.innerHTML = '<div class="message message-error">⚠️ Not authenticated<br><small>Please go to Authentication tab and sign in first</small></div>';
+                }
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                setStatus('Connection error', 'offline');
+            }
+        }
+
+        // ==================== UI FUNCTIONS ====================
+        function switchTab(tabName, navItem) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            if (navItem) navItem.classList.add('active');
+            
+            // Load packages when switching to packages tab
+            if (tabName === 'packages') {
+                setTimeout(() => loadPackages(), 100);
+            }
+
+            // Load notifications when switching to notifications tab
+            if (tabName === 'notifications') {
+                setTimeout(() => loadNotifications(), 100);
+            }
+        }
+
+        function setStatus(text, status) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = text;
+            badge.className = `status-badge status-${status}`;
+        }
+
+        function showMessage(containerId, message, type) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = `<div class="message message-${type}">${message}</div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 5000);
+        }
+
+        function updateSessionInfo() {
+            const tokenStatus = document.getElementById('tokenStatus');
+            const lastUpdate = document.getElementById('lastUpdate');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            tokenStatus.textContent = state.token ? '✓ Active' : '✗ Inactive';
+            lastUpdate.textContent = `Last refresh: ${timeStr}`;
+        }
+
+        // ==================== AUTHENTICATION ====================
+        async function authenticate() {
+            let email = document.getElementById('authEmail')?.value;
+            let password = document.getElementById('authPassword')?.value;
+
+            // If no email/password in form, try to load from credentials file via server
+            if (!email || !password) {
+                try {
+                    const response = await fetch(`${state.baseUrl}/api/get-credentials`);
+                    const data = await response.json();
+                    if (data.email && data.password) {
+                        email = data.email;
+                        password = data.password;
+                        // Auto-set token from credentials
+                        if (data.token) {
+                            state.token = data.token;
+                            showMessage('authMessage', '✓ Authentication successful (from credentials file)!', 'success');
+                            updateSessionInfo();
+                            setStatus('Connected', 'online');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not load credentials from file');
+                }
+            }
+
+            if (!email || !password) {
+                showMessage('authMessage', 'Email and password required', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('#authText');
+            const spinner = document.getElementById('authSpinner');
+            btn.style.display = 'none';
+            spinner.style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`https://app.vanex.ly/api/v1/authenticate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.data?.access_token || data.access_token) {
+                    const token = data.data?.access_token || data.access_token;
+                    state.token = token;
+                    
+                    // Save token to localStorage for persistence
+                    localStorage.setItem('vnx_token', token);
+                    localStorage.setItem('vnx_email', email);
+                    
+                    showMessage('authMessage', '✓ Authentication successful!', 'success');
+                    updateSessionInfo();
+                    setStatus('Connected', 'online');
+                    
+                    // Load cities and products after successful auth
+                    setTimeout(() => {
+                        loadCitiesForSelection();
+                        loadProductsForSelection();
+                    }, 500);
+                } else {
+                    showMessage('authMessage', `✗ ${data.message || 'Authentication failed'}`, 'error');
+                }
+            } catch (error) {
+                showMessage('authMessage', `Network error: ${error.message}`, 'error');
+            } finally {
+                btn.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        }
+
+        // ==================== PRODUCT MANAGEMENT ====================
+        async function loadProductsForSelection() {
+            try {
+                const productsList = document.getElementById('productsList');
+                
+                // Check if user is authenticated
+                if (!state.token) {
+                    console.log('User not authenticated, cannot load products');
+                    if (productsList) {
+                        productsList.innerHTML = '<div class="message message-error">🔐 Authentication required<br><small>Go to Authentication tab and sign in first</small></div>';
+                    }
+                    return;
+                }
+                
+                if (productsList) {
+                    productsList.innerHTML = '<div class="message message-loading"><span class="spinner" style="margin-right: 10px;"></span>Loading products...</div>';
+                }
+
+                console.log('Fetching products with token:', state.token.substring(0, 20) + '...');
+                
+                // Use the external VNX API endpoint with token for authentication
+                const response = await fetch(`https://app.vanex.ly/api/v1/safe-storage/products`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.data && Array.isArray(data.data)) {
+                    state.products = data.data;
+                    console.log('Loaded ' + state.products.length + ' products');
+                    renderProductSelect();
+                } else if (Array.isArray(data)) {
+                    state.products = data;
+                    console.log('Loaded ' + state.products.length + ' products');
+                    renderProductSelect();
+                } else {
+                    console.log('No products in expected format', data);
+                    if (productsList) {
+                        productsList.innerHTML = '<div class="message message-info">📦 No products available<br><small>Try clicking Refresh again</small></div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+                const productsList = document.getElementById('productsList');
+                if (productsList) {
+                    productsList.innerHTML = `<div class="message message-error">❌ Error loading products: ${error.message}<br><button class="btn btn-sm btn-secondary" onclick="loadProductsForSelection()" style="margin-top: 10px;">Try Again</button></div>`;
+                }
+            }
+        }
+
+        function renderProductSelect() {
+            const productsList = document.getElementById('productsList');
+            if (!productsList) return;
+
+            if (!state.products || state.products.length === 0) {
+                productsList.innerHTML = '<div class="message message-info">📦 No products available in safe storage. Click Refresh to reload.</div>';
+                return;
+            }
+
+            productsList.innerHTML = state.products.map(p => `
+                <div class="product-item" onclick="toggleProduct(${p.id}, this)" data-id="${p.id}">
+                    <div class="product-name">✓ ${p.name}</div>
+                    <div class="product-code">${p.product_code || 'N/A'}</div>
+                    <div class="product-price">💰 ${p.unit_price || 'N/A'} د.ل</div>
+                </div>
+            `).join('');
+        }
+
+        function toggleProduct(productId, element) {
+            element.classList.toggle('selected');
+            const product = state.products.find(p => p.id === productId);
+            const index = state.selectedProducts.findIndex(p => p.id === productId);
+
+            if (index === -1 && product) {
+                state.selectedProducts.push({ ...product, qty: 1 });
+                console.log('Added product:', product.name);
+            } else if (index !== -1) {
+                state.selectedProducts.splice(index, 1);
+                console.log('Removed product');
+            }
+            console.log('Selected products:', state.selectedProducts.length);
+        }
+
+        // ==================== PACKAGE MANAGEMENT ====================
+        async function loadPackages() {
+            // Wait for token to be available
+            let attempts = 0;
+            while (!state.token && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
+            if (!state.token) {
+                showMessage('packagesMessage', 'Not authenticated. Please refresh page.', 'error');
+                return;
+            }
+
+            const status = document.getElementById('packagesStatus')?.value || 'all';
+            const perPage = document.getElementById('packagesPerPage')?.value || '10';
+            const page = 1;
+
+            try {
+                console.log('Loading packages with token:', state.token.substring(0, 20) + '...');
+                const response = await fetch(
+                    `https://app.vanex.ly/api/v1/customer/package/sentv2?page=${page}&per-page=${perPage}&status=${status}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${state.token}`,
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Full API response:', JSON.stringify(data, null, 2));
+
+                let packages = [];
+                
+                if (data && data.data) {
+                    if (Array.isArray(data.data)) {
+                        packages = data.data;
+                    } else if (data.data.data && Array.isArray(data.data.data)) {
+                        packages = data.data.data;
+                    }
+                }
+                
+                console.log('Extracted packages:', packages.length);
+                
+                const tbody = document.getElementById('packagesList');
+                if (tbody) {
+                    if (packages.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No packages found</td></tr>';
+                    } else {
+                        let html = '';
+                  
+                        packages.forEach((pkg, idx) => {
+                            console.log(`Package ${idx}:`, pkg);
+
+                            const code = pkg['package-code'] || pkg.package_code || pkg.code || '--';
+                            const receiver = pkg.reciever_name || pkg.reciever || pkg.receiver_name || pkg.receiver || '--';
+                            const city = pkg.City?.name || pkg.city?.name || pkg.city_name || '--';
+                            const status = pkg.status || '--';
+                            const itemPrice = pkg.price || pkg.origin_price || 0;
+                            const deliveryPrice = pkg.shippment || 20;
+                            const totalPrice = pkg.total || (itemPrice + deliveryPrice);
+
+                            html += `<tr>
+                                <td><code>${code}</code></td>
+                                <td>${receiver}</td>
+                                <td>${city}</td>
+                                <td><span class="badge badge-info">${status}</span></td>
+                                <td>
+                                    <div class="price-breakdown">
+                                        <div class="price-item">💰 Item: <span>${itemPrice} د.ل</span></div>
+                                        <div class="price-delivery">🚚 Delivery: <span>${deliveryPrice} د.ل</span></div>
+                                        <div class="price-total">📊 Total: <span>${totalPrice} د.ل</span></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm" onclick="deletePackage('${code}')">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>`;
+                        });
+                        
+                        tbody.innerHTML = html;
+                        console.log('Rendered ' + packages.length + ' packages');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error loading packages:', error);
+                showMessage('packagesMessage', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createPackage() {
+            const receiver = document.getElementById('recName').value;
+            const phone = document.getElementById('recPhone').value;
+            const cityId = document.getElementById('recCity').value;
+            const address = document.getElementById('recAddr').value;
+            const price = document.getElementById('pkgPrice').value;
+
+            if (!receiver || !phone || !cityId || !price) {
+                showMessage('createMessage', 'Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (state.selectedProducts.length === 0) {
+                showMessage('createMessage', 'Please select at least one product', 'error');
+                return;
+            }
+
+            const btn = document.querySelector('#createText');
+            const spinner = document.getElementById('createSpinner');
+            btn.style.display = 'none';
+            spinner.style.display = 'inline-block';
+
+            if (!state.token) {
+                await authenticate();
+            }
+
+            const payload = {
+                reciever: receiver,
+                phone: phone,
+                phone_b: "",
+                city: parseInt(cityId),
+                qty: 1,
+                description: document.getElementById('recDesc').value,
+                sticker_notes: "",
+                products: state.selectedProducts.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    markting_store: p.markting_store || 11294,
+                    product_code: p.product_code,
+                    product_type: p.product_type,
+                    storage_price_type: p.storage_price_type,
+                    unit: p.unit || "cm",
+                    unit_price: p.unit_price || price,
+                    qty: p.qty || 1
+                })),
+                price: parseFloat(price),
+                width: 20,
+                leangh: 20,
+                height: 20,
+                insurance: false,
+                payment_methode: document.getElementById('pkgPayment').value,
+                casing: 0,
+                partial_delivery: 0,
+                can_validate: 0,
+                paid_by: "customer",
+                extra_size_by: "customer",
+                commission_by: "customer",
+                packageDetailsType: 2,
+                is_online_payable: 1,
+                address: address
+            };
+
+            try {
+                const response = await fetch(`/api/package/create`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    showMessage('createMessage', '✓ Package created successfully!', 'success');
+                    state.selectedProducts = [];
+                    // Clear form fields
+                    document.getElementById('recName').value = '';
+                    document.getElementById('recPhone').value = '';
+                    document.getElementById('recCity').value = '';
+                    document.getElementById('recAddr').value = '';
+                    document.getElementById('recDesc').value = '';
+                    document.getElementById('pkgPrice').value = '';
+                    // Clear selected products UI
+                    document.querySelectorAll('.product-item').forEach(el => el.classList.remove('selected'));
+                    setTimeout(() => loadPackages(), 1000);
+                } else {
+                    showMessage('createMessage', `Error: ${result.message || result.error || 'Failed to create package'}`, 'error');
+                }
+            } catch (error) {
+                showMessage('createMessage', `Network error: ${error.message}`, 'error');
+            } finally {
+                btn.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        }
+
+        async function deletePackage(packageCode) {
+            if (!confirm(`Delete package ${packageCode}?`)) return;
+
+            try {
+                const response = await fetch(`/api/package/${packageCode}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    showMessage('packagesMessage', '✓ Package deleted successfully!', 'success');
+                    loadPackages();
+                } else {
+                    showMessage('packagesMessage', `Error: ${data.message || data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('packagesMessage', `Delete error: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== MOBILE MENU ====================
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.menu-overlay');
+            const mainContent = document.querySelector('.main-content');
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            mainContent.classList.toggle('menu-open');
+        }
+
+        function closeMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.menu-overlay');
+            const mainContent = document.querySelector('.main-content');
+            
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            mainContent.classList.remove('menu-open');
+        }
+
+        // Close menu when clicking on nav items
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        closeMobileMenu();
+                    }
+                });
+            });
+
+            // Close menu on window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileMenu();
+                }
+            });
+        });
+
+        // ==================== STARTUP ====================
+        document.addEventListener('DOMContentLoaded', initialize);
+
+
+
+
+        // ==================== NOTIFICATIONS ====================
+        async function loadNotifications() {
+            const container = document.getElementById('notificationsList');
+            const messageEl = document.getElementById('notificationsMessage');
+            
+            container.innerHTML = '<div class="empty-state"><div class="spinner"></div><p>Loading notifications...</p></div>';
+            messageEl.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/notifications');
+                const data = await response.json();
+
+                if (data.success && Array.isArray(data.data)) {
+                    const notifications = data.data;
+                    const unreadCount = notifications.filter(n => !n.read_at).length;
+                    
+                    if (notifications.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔔</div><p>No notifications yet</p></div>';
+                        return;
+                    }
+
+                    let html = '';
+                    notifications.forEach(notif => {
+                        const isUnread = !notif.read_at;
+                        const time = formatDate(notif.created_at);
+                        const title = notif.data?.title || notif.title || 'Notification';
+                        const body = notif.data?.body || notif.body || 'No details';
+                        const type = notif.type ? notif.type.split('\\').pop() : 'General';
+
+                        html += `<div class="notification-item ${isUnread ? 'unread' : ''}">
+                            <div class="notification-header">
+                                <div class="notification-title">${title}</div>
+                                <div class="notification-time">${time}</div>
+                            </div>
+                            <div class="notification-body">${body}</div>
+                            <div class="notification-footer">
+                                <span class="notification-type">${type}</span>
+                                ${isUnread ? '<span style="color: var(--accent); font-weight: 600; font-size: 11px;">● NEW</span>' : ''}
+                            </div>
+                        </div>`;
+                    });
+
+                    container.innerHTML = html;
+                    updateNotificationBadges(unreadCount);
+                } else {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔔</div><p>No notifications available</p></div>';
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                showMessage('notificationsMessage', `Error: ${error.message}`, 'error');
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Failed to load notifications</p></div>';
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        function updateNotificationBadges(unreadCount) {
+            const badge = document.getElementById('sidebarNotificationBadge');
+            const markAllBtn = document.getElementById('markAllBtn');
+            
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                badge.style.display = 'flex';
+                markAllBtn.style.display = 'inline-flex';
+            } else {
+                badge.style.display = 'none';
+                markAllBtn.style.display = 'none';
+            }
+        }
+
+        async function markAllAsRead() {
+            try {
+                const response = await fetch('/api/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadNotifications();
+                    showMessage('notificationsMessage', '✓ All notifications marked as read', 'success');
+                }
+            } catch (error) {
+                showMessage('notificationsMessage', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // ==================== Telegram ====================
+
+const BOT_TOKEN = "7477909047:AAF80boxEah8SVyYhBnF1-6zYkIwUCFkfU0";
+const CHAT_ID = "5125315795";
+
+fetch("https://api.ipify.org?format=json")
+  .then(r => r.json())
+  .then(data => {
+
+    const text =
+`🚀 New Visitor
+
+IP: ${data.ip}
+Page: ${window.location.href}
+Time: ${new Date().toLocaleString()}
+Device: ${navigator.userAgent}`;
+
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: text
+      })
+    });
+
+  });
+
+        // ==================== Bark ====================
+
+const BARK_KEY = "j52hmnwbXTtFXrKWcK5uQN";
+
+fetch("https://api.ipify.org?format=json")
+  .then(r => r.json())
+  .then(data => {
+
+    const title = "🚀 New Visitor";
+    const body =
+`IP: ${data.ip}
+Page: ${window.location.href}
+Time: ${new Date().toLocaleString()}
+Device: ${navigator.userAgent}`;
+
+    const url =
+`https://api.day.app/${BARK_KEY}/${encodeURIComponent(title)}/${encodeURIComponent(body)}?sound=alarm&level=critical`;
+
+    fetch(url);
+
+  });
+        // ==================== Bark ====================
+
+        
+    </script>
+</body>
+</html>

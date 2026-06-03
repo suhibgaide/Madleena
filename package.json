@@ -1,0 +1,19 @@
+{
+  "name": "madleena-store",
+  "version": "1.0.0",
+  "description": "Madleena | مادلينا – الجرابة أوتليت | الجرابة ستور",
+  "main": "index.html",
+  "scripts": {
+    "serve": "npx http-server -p 3000 -c-1"
+  },
+  "keywords": [
+    "مادلينا",
+    "Madleena",
+    "الجرابة أوتليت",
+    "Al Jaraba Outlet",
+    "fashion",
+    "Libya"
+  ],
+  "author": "Madleena",
+  "license": "MIT"
+}
