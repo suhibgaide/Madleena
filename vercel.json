@@ -1,5 +1,4 @@
 {
-  "framework": "static",
   "buildCommand": "",
   "outputDirectory": ".",
   "devCommand": "npx http-server -p 3000",
