@@ -1,0 +1,9 @@
+# Madleena | مادلينا – الجرابة أوتليت | الجرابة ستور
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.madleena.com/sitemap.xml
+
+# Block crawlers from assets folder (optional)
+# Disallow: /assets/
